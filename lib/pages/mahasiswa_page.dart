@@ -1,104 +1,137 @@
 import 'package:flutter/material.dart';
-import '../services/mahasiswa_service.dart';
-import '../models/mahasiswa.dart';
 
 void main() {
-  runApp(MaterialApp(home: MahasiswaPage()));
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: MahasiswaPage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class Mahasiswa {
+  int? id;
+  String nama;
+  String nim;
+  String jurusan;
+
+  Mahasiswa({
+    this.id,
+    required this.nama,
+    required this.nim,
+    required this.jurusan,
+  });
 }
 
 class MahasiswaPage extends StatefulWidget {
-  const MahasiswaPage({Key? key}) : super(key: key);
+  const MahasiswaPage({super.key});
 
   @override
   State<MahasiswaPage> createState() => _MahasiswaPageState();
 }
 
 class _MahasiswaPageState extends State<MahasiswaPage> {
-  final MahasiswaService service = MahasiswaService();
-
   List<Mahasiswa> data = [];
 
   final TextEditingController namaController = TextEditingController();
   final TextEditingController nimController = TextEditingController();
   final TextEditingController jurusanController = TextEditingController();
 
-  int? selectedId;
+  int? selectedIndex;
   bool isEdit = false;
 
-  @override
-  void initState() {
-    super.initState();
-    loadData();
-  }
-
-  void loadData() async {
-    final result = await service.getAll();
-
-    setState(() {
-      data = result;
-    });
-  }
-
-  void simpanData() async {
-    final mahasiswa = Mahasiswa(
-      id: selectedId,
-      nama: namaController.text,
-      nim: nimController.text,
-      jurusan: jurusanController.text,
-    );
-
-    if (isEdit) {
-      await service.update(mahasiswa);
-    } else {
-      await service.tambah(mahasiswa);
+  void simpanData() {
+    if (namaController.text.isEmpty ||
+        nimController.text.isEmpty ||
+        jurusanController.text.isEmpty) {
+      return;
     }
 
-    loadData();
+    if (isEdit) {
+      data[selectedIndex!] = Mahasiswa(
+        nama: namaController.text,
+        nim: nimController.text,
+        jurusan: jurusanController.text,
+      );
+
+      isEdit = false;
+      selectedIndex = null;
+    } else {
+      data.add(
+        Mahasiswa(
+          nama: namaController.text,
+          nim: nimController.text,
+          jurusan: jurusanController.text,
+        ),
+      );
+    }
 
     namaController.clear();
     nimController.clear();
     jurusanController.clear();
 
-    isEdit = false;
-    selectedId = null;
+    setState(() {});
   }
 
-  void hapusMahasiswa(int id) async {
-    await service.hapus(id);
+  void editData(int index) {
+    final mhs = data[index];
 
-    loadData();
+    namaController.text = mhs.nama;
+    nimController.text = mhs.nim;
+    jurusanController.text = mhs.jurusan;
+
+    selectedIndex = index;
+    isEdit = true;
+
+    setState(() {});
+  }
+
+  void hapusData(int index) {
+    data.removeAt(index);
+
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Daftar Mahasiswa")),
+      appBar: AppBar(title: const Text("Daftar Mahasiswa")),
 
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
 
         child: Column(
           children: [
             TextField(
               controller: namaController,
-              decoration: InputDecoration(labelText: "Nama"),
+              decoration: const InputDecoration(labelText: "Nama"),
             ),
 
             TextField(
               controller: nimController,
-              decoration: InputDecoration(labelText: "NIM"),
+              decoration: const InputDecoration(labelText: "NIM"),
             ),
 
             TextField(
               controller: jurusanController,
-              decoration: InputDecoration(labelText: "Jurusan"),
+              decoration: const InputDecoration(labelText: "Jurusan"),
             ),
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-            ElevatedButton(onPressed: simpanData, child: Text("Simpan")),
+            ElevatedButton(
+              onPressed: simpanData,
+              child: Text(isEdit ? "Update" : "Tambah"),
+            ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             Expanded(
               child: ListView.builder(
@@ -106,34 +139,29 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
                 itemBuilder: (context, index) {
                   final mhs = data[index];
 
-                  return ListTile(
-                    title: Text(mhs.nama),
-                    subtitle: Text("${mhs.nim} - ${mhs.jurusan}"),
+                  return Card(
+                    child: ListTile(
+                      title: Text(mhs.nama),
+                      subtitle: Text("${mhs.nim} - ${mhs.jurusan}"),
 
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              editData(index);
+                            },
+                          ),
 
-                          onPressed: () {
-                            namaController.text = mhs.nama;
-                            nimController.text = mhs.nim;
-                            jurusanController.text = mhs.jurusan;
-
-                            selectedId = mhs.id;
-                            isEdit = true;
-                          },
-                        ),
-
-                        IconButton(
-                          icon: Icon(Icons.delete),
-
-                          onPressed: () {
-                            hapusMahasiswa(mhs.id!);
-                          },
-                        ),
-                      ],
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () {
+                              hapusData(index);
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
